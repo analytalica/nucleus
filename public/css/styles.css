@@ -13,7 +13,7 @@
   letter-spacing: -.3px;
 }
 
-.acceptinvitecontroller h2 {
+.acceptinvitecontroller .container h2 {
   text-align: center;
   text-shadow: 1px 1px rgba(0,0,0,0.1);
 }
@@ -214,12 +214,12 @@ h1, h3 {
   background-color: #D8D8D8;
 }
 
-.memberscontroller,
-.settingscontroller {
+.memberscontroller .container,
+.settingscontroller .container {
   margin-top: 30px;
 }
 
-.memberscontroller {
+.memberscontroller .container {
   width: 90%;
 }
 
