@@ -148,12 +148,6 @@ h1, h3 {
   text-shadow: 1px 1px rgba(0,0,0,.2);
 }
 
-.navbar {
-  background-color: #FFF;
-  border: none;
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.24);
-}
-
 .sorry {
   text-align: center;
 }
@@ -198,16 +192,36 @@ h1, h3 {
   background-color: #9137ff;
 }
 
-.navbar-default .navbar-nav>.active>a, .navbar-default .navbar-nav>.active>a:hover, .navbar-default .navbar-nav>.active>a:focus {
-  background-color: #9B9B9B;
-  color: #ffffff;
+.navbar {
+  background-color: #74DCFF;
+  border: none;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.24);
 }
 
-.navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus {
+.dashboardcontroller .navbar,
+.frontpagecontroller .navbar{
+  background-color: #FFF;
+}
+
+.navbar-default .navbar-nav>.active>a,
+.navbar-default .navbar-nav>.active>a:hover, 
+.navbar-default .navbar-nav>.active>a:focus {
   background-color: #9B9B9B;
+  color: #ffffff !important;
+}
+
+.navbar-default .navbar-nav>li>a:hover, 
+.navbar-default .navbar-nav>li>a:focus {
+  background-color: #9B9B9B;
+  color: #ffffff !important;
 }
 
 .navbar-default .navbar-nav>li>a {
+  color: #ffffff;
+}
+
+.dashboardcontroller .navbar-default .navbar-nav>li>a,
+.frontpagecontroller .navbar-default .navbar-nav>li>a {
   color: #9B9B9B;
 }
 
