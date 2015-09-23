@@ -21,24 +21,30 @@ class MembersController extends BaseController {
 
     $limit = 25;
     $offset = $page * $limit;
-    
+
+    $uri_builder = new URIBuilder(self::getPath());
+
+    $where = new WhereClause("and");
     if ($filter !== null) {
-      DB::query("SELECT * FROM users WHERE status=%i", $filter);
-    } elseif($search !== null) {
-      DB::query("SELECT * FROM users WHERE %s in (fname, lname, email)", $search);
-    } else {
-      DB::query("SELECT * FROM users");
+      $uri_builder->setParam('filter', $filter);
+      $where->add("status=%i", $filter);
+    } else if ($search !== null) {
+      $uri_builder->setParam('search', $search);
+      $where->add(
+        "MATCH(fname, lname, email) AGAINST (%s IN BOOLEAN MODE)",
+        preg_replace("/(\w+)/", "+$1*", $search),
+      );
     }
 
+    DB::query("SELECT * FROM users WHERE %l", $where);
     $max_page = (int) (DB::count() / 25);
 
-    if ($filter !== null) {
-      $members = DB::query("SELECT * FROM users WHERE status=%i ORDER BY created ASC LIMIT %i OFFSET %i", $filter, $limit, $offset);
-    } elseif($search !== null) {
-      $members = DB::query("SELECT * FROM users WHERE %s in (fname, lname, email) ORDER BY created ASC LIMIT %i OFFSET %i", $search, $limit, $offset);
-    } else {
-      $members = DB::query("SELECT * FROM users ORDER BY created ASC LIMIT %i OFFSET %i", $limit, $offset);
-    }
+    $members = DB::query(
+      "SELECT * FROM users WHERE %l ORDER BY created ASC LIMIT %i OFFSET %i",
+      $where,
+      $limit,
+      $offset,
+    );
 
     $clear_filter = null;
     if ($filter !== null) {
@@ -58,10 +64,48 @@ class MembersController extends BaseController {
         </a>;
     }
 
+    $progress_bar_types = Map {
+      "Accepted" => "",
+      "Confirmed" => "progress-bar-success",
+      "Waitlisted" => "progress-bar-warning",
+      "Rejected" => "progress-bar-danger",
+    };
+
+    DB::query("SELECT * FROM users");
+    $total_users = DB::count();
+
+    $progress_bars = Vector {};
+    foreach ($progress_bar_types as $state => $class) {
+      DB::query(
+        "SELECT * FROM users WHERE status=%s",
+        UserState::getValues()[$state],
+      );
+      $percent = DB::count() / $total_users * 100;
+      $progress_bars[] =
+        <div class={"progress-bar ".$class} style={"width: ".$percent."%"}>
+          <span>{(int) $percent."% ".$state}</span>
+        </div>;
+    }
+
     return
       <div class="memberscontroller-wrapper">
         <div class="row text-right">
-          <input id="member-search" class="search-bar" type="search" placeholder="Search" />
+          <div class="col-md-10 col-md-offset-2">
+            <input
+              id="member-search"
+              class="search-bar"
+              type="search"
+              value={$search}
+              placeholder="Search"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <div class="progress">
+              {$progress_bars}
+            </div>
+          </div>
         </div>
         <div class="row">
           <div class="col-md-2">
@@ -72,7 +116,11 @@ class MembersController extends BaseController {
           </div>
           <div class="members-wrapper col-md-10" role="tabpanel">
             {self::getMembers($members)}
-            {self::getPagination($page, $max_page, $filter)}
+            <nucleus:pagination
+              uri-builder={$uri_builder}
+              page={$page}
+              max={$max_page}
+            />
           </div>
         </div>
         <script src="/js/members.js"></script>
@@ -185,79 +233,5 @@ class MembersController extends BaseController {
   ): string {
     $data = Map {'user' => $id, 'status' => $status, 'role' => $role};
     return "makeCall('".self::getPath()."', ".json_encode($data).");";
-  }
-
-  private static function getPagination(
-    int $page,
-    int $max,
-    ?UserState $filter,
-  ): :nav {
-    $buttons = Vector {};
-    for (
-      $i = ($page < 2 ? 0 : $page - 2);
-      $i < ($page < 2 ? 5 : $page + 3);
-      $i++
-    ) {
-      if ($i > $max) {
-        break;
-      }
-
-      $buttons[] =
-        <li class={$i == $page ? "active" : ""}>
-          <a href={self::getLink($i, $filter)}>{$i}</a>
-        </li>;
-    }
-
-    $beginning =
-      <li class={$page < 3 ? "disabled" : ""}>
-        <a href={self::getLink(0, $filter)} aria-label="Beginning">
-          <span aria-hidden="true">&laquo;</span>
-        </a>
-      </li>;
-
-    $back =
-      <li class={$page < 3 ? "disabled" : ""}>
-        <a
-          href={self::getLink($page < 5 ? 0 : $page - 5, $filter)}
-          aria-label="Previous">
-          <span aria-hidden="true">&lsaquo;</span>
-        </a>
-      </li>;
-
-    $next =
-      <li class={$max - $page < 3 ? "disabled" : ""}>
-        <a
-          href={self::getLink($max - $page > 5 ? $page + 5 : $max, $filter)}
-          aria-label="Next">
-          <span aria-hidden="true">&rsaquo;</span>
-        </a>
-      </li>;
-
-    $end =
-      <li class={$max - $page < 3 ? "disabled" : ""}>
-        <a href={self::getLink($max, $filter)} aria-label="End">
-          <span aria-hidden="true">&raquo;</span>
-        </a>
-      </li>;
-
-    return
-      <nav>
-        <ul class="pagination">
-          {$beginning}
-          {$back}
-          {$buttons}
-          {$next}
-          {$end}
-        </ul>
-      </nav>;
-  }
-
-  private static function getLink(int $page, ?UserState $filter): string {
-    $url = self::getPath()."?page=".$page;
-    if ($filter !== null) {
-      $url = $url."&filter=".$filter;
-    }
-
-    return $url;
   }
 }
